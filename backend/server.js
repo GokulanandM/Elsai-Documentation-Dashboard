@@ -3,29 +3,54 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 
 const app = express();
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// MongoDB URI — ideally put this in an environment variable in production
-const uri = process.env.MONGODB_URI || 'mongodb+srv://gokulkvmhs2020:tCQSWHygV3CzZw6O@cluster0.pg4chsb.mongodb.net/llm_dashboard?retryWrites=true&w=majority';
-mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log("MongoDB connected"))
-  .catch(console.error);
+// ✅ MongoDB URI — should be set in .env in production (NEVER hardcoded)
+const uri = process.env.MONGODB_URI;
 
+if (!uri) {
+  console.error('❌ MONGODB_URI not set in environment variables');
+  process.exit(1); // Stop the server if no DB URI
+}
+
+mongoose.connect(uri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log("✅ MongoDB connected"))
+.catch(err => {
+  console.error("❌ MongoDB connection failed:", err);
+  process.exit(1);
+});
+
+// Models
 const Project = require('./models/Project');
 const Run = require('./models/Run');
 
-// API Endpoints
+// API Routes
 app.get('/api/projects', async (req, res) => {
-  const projects = await Project.find();
-  res.json(projects);
+  try {
+    const projects = await Project.find();
+    res.json(projects);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch projects' });
+  }
 });
 
 app.get('/api/runs', async (req, res) => {
-  const runs = await Run.find();
-  res.json(runs);
+  try {
+    const runs = await Run.find();
+    res.json(runs);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch runs' });
+  }
 });
 
-// ✅ Use dynamic PORT from environment (for Render)
+// ✅ Dynamic PORT (for Render or local)
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Backend server running at http://localhost:${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 Backend server running at http://localhost:${PORT}`);
+});
